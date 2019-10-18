@@ -1,7 +1,7 @@
 # dalidata
 
 # objectives
-Try to create an application that allows users to input their desired attributes(i.e. the independent variables) and their desired label (i.e. the dependant variable that is based on the attributes) and predict a label value based on any attribute. 
+Try to create an application that allows users to input their desired attributes(i.e. the independent variables) and their desired outcome (i.e. the dependant variable that is based on the attributes) and predict a outcome value based on any attribute. 
 
 Based on how many attributes there are, a variety regression strategies will be used and the model with the least root mean square error will be presented to the user. 
 
