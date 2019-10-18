@@ -81,6 +81,7 @@ def singleAttriReg(attribute, label, degreeNum):
     # return the results
     return res
 
+
 # performs multi-linear, ridge, lasso, elastic net, ridge, bayesian ridge and decision tree regression...
 # and returns the regression strategy with the least root mean squared error
 def multiAttriReg(attriList, label):
@@ -190,13 +191,6 @@ def multiAttriReg(attriList, label):
     # return the result
     return res
 
-
-aList = ["stressed", "alcoholDrinksPerWeek", "caffeineRating", "gymPerWeek", "hoursOnScreen", "socialDinnerPerWeek", "heightInches", "affiliated", "happiness", "numOfLanguages"]
-
-rez = multiAttriReg(aList, "sleepPerNight")
-
-print(rez.rmse)
-print(rez.strat)
 # # how to use the predictor
 # xnew =[[10.0]]
 # ynew = regressor.predict(xnew)

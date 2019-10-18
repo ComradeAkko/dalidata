@@ -20,5 +20,3 @@ Trying to create an supervised learning model that takes using `DALI_Data-Anon.j
 
 - once the most accurate regression is specified, the user is then able to calculate what the predicted value of any attribute inputted is.
 
-- curr estimated time of completion...: 72 hours??
-
