@@ -18,13 +18,23 @@ class Result:
             self.strat = "nothing"
 
 
-# performs simple linear regression based on specified attribute and label
-def simpleLinearReg(attribute, label):
+# performs simple and polynomial linear regression based on specified attribute and label and...
+# returns the model with the least error
+def singleAttriReg(attribute, label, degreeNum):
+    #initialize the result
+    res = Result()
+    
     # get the path to the current folder
     dataPath = os.getcwd() + "\\data\\DALI_Data-Anon.json"
 
     # download the dataframe
     data = pd.read_json(dataPath)
+
+    # check which columns have null values in them
+    data.isnull().any()
+
+    # remove the null values from column:
+    data = data.fillna(method='ffill')
 
     # reshape the specified values and get them
     x = data[attribute].values.reshape(-1,1)
@@ -33,50 +43,50 @@ def simpleLinearReg(attribute, label):
     # split the data into training and testing sets with 80% training and 20% testing
     xTrain, xTest, yTrain, yTest = train_test_split(x,y, test_size = 0.2, random_state = 0)
 
-    # use regression 
-    regressor = LinearRegression()
-    regressor.fit(xTrain, yTrain)
+    # use simple linear regression 
+    simpleReg = LinearRegression()
+    simpleReg.fit(xTrain, yTrain)
+    yPred = simpleReg.predict(xTest)
 
-    yPred = regressor.predict(xTest)
+    # calculate root mean square error between the test label and the predicted label
+    simpleRMSE = np.sqrt(metrics.mean_squared_error(yTest, yPred))
 
-    print("Root Mean Squared Error:", np.sqrt(metrics.mean_squared_error(yTest, yPred)))
+    # record the results
+    res.strat = "simple linear regression"
+    res.reg = simpleReg
+    res.rmse = simpleRMSE
 
-    return
 
-# performs polynomial regression based on specified attribute and label
-def polyReg(attribute, label, degreeNum):
-    # get the path to the current folder
-    dataPath = os.getcwd() + "\\data\\DALI_Data-Anon.json"
-
-    # download the dataframe
-    data = pd.read_json(dataPath)
-
-    # reshape the specified values and get them
-    x = data[attribute].values.reshape(-1,1)
-    y = data[label].values.reshape(-1,1)
-
-    # split the data into training and testing sets with 80% training and 20% testing
-    xTrain, xTest, yTrain, yTest = train_test_split(x,y, test_size = 0.2, random_state = 0)
-
-    # use regression 
+    # use polynomial regression
     poly = PolynomialFeatures(degreeNum)
 
+    # train and create a polynomial model
     xTrainPoly = poly.fit_transform(xTrain)
-
     model = LinearRegression()
     model.fit(xTrainPoly, yTrain)
 
+    # use the new model on the test data
     xTestPoly = poly.fit_transform(xTest)
-
     yPolyPred = model.predict(xTestPoly)
 
-    print("Root Mean Squared Error:", np.sqrt(metrics.mean_squared_error(yTest, yPolyPred)))
+    # calculate the RMSE of the polynomial regression model
+    polyRMSE = np.sqrt(metrics.mean_squared_error(yTest, yPolyPred))
 
-    return
+    # if the polynomial rmse is lesser than the simple linear rmse, overwrite the results
+    if polyRMSE < res.rmse:
+        res.strat = "polynomial regression"
+        res.reg = model
+        res.rmse = polyRMSE
 
-# performs multi-linear, ridge, lasso, elastic net, ridge, bayesian ridge and decision tree regression
+    # return the results
+    return res
+
+# performs multi-linear, ridge, lasso, elastic net, ridge, bayesian ridge and decision tree regression...
 # and returns the regression strategy with the least root mean squared error
 def multiAttriReg(attriList, label):
+    #initialize the result
+    res = Result()
+
     # get the path to the current folder
     dataPath = os.getcwd() + "\\data\\DALI_Data-Anon.json"
 
@@ -106,9 +116,6 @@ def multiAttriReg(attriList, label):
 
     # calculate the RMSE for multi-linear regression
     multiRMSE = np.sqrt(metrics.mean_squared_error(yTest, yMultiPred))
-    
-    #initialize the result
-    res = Result()
 
     # record the current regression model, name and rmse into results
     res.strat = "multi-linear regression"
@@ -184,11 +191,12 @@ def multiAttriReg(attriList, label):
     return res
 
 
-aList = ["sleepPerNight", "alcoholDrinksPerWeek", "caffeineRating", "gymPerWeek", "hoursOnScreen", "socialDinnerPerWeek", "heightInches", "affiliated", "happiness"]
+aList = ["stressed", "alcoholDrinksPerWeek", "caffeineRating", "gymPerWeek", "hoursOnScreen", "socialDinnerPerWeek", "heightInches", "affiliated", "happiness", "numOfLanguages"]
 
-rez = multiAttriReg(aList, "stressed")
+rez = multiAttriReg(aList, "sleepPerNight")
 
 print(rez.rmse)
+print(rez.strat)
 # # how to use the predictor
 # xnew =[[10.0]]
 # ynew = regressor.predict(xnew)
