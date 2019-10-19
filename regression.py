@@ -18,9 +18,9 @@ class Result:
             self.strat = "nothing"
 
 
-# performs simple and polynomial linear regression based on specified attribute and label and...
+# performs simple and polynomial linear regression based on specified attribute and outcome and...
 # returns the model with the least error
-def singleAttriReg(attribute, label, degreeNum):
+def singleAttriReg(attribute, outcome):
     #initialize the result
     res = Result()
     
@@ -38,7 +38,7 @@ def singleAttriReg(attribute, label, degreeNum):
 
     # reshape the specified values and get them
     x = data[attribute].values.reshape(-1,1)
-    y = data[label].values.reshape(-1,1)
+    y = data[outcome].values.reshape(-1,1)
 
     # split the data into training and testing sets with 80% training and 20% testing
     xTrain, xTest, yTrain, yTest = train_test_split(x,y, test_size = 0.2, random_state = 0)
@@ -48,7 +48,7 @@ def singleAttriReg(attribute, label, degreeNum):
     simpleReg.fit(xTrain, yTrain)
     yPred = simpleReg.predict(xTest)
 
-    # calculate root mean square error between the test label and the predicted label
+    # calculate root mean square error between the test outcome and the predicted outcome
     simpleRMSE = np.sqrt(metrics.mean_squared_error(yTest, yPred))
 
     # record the results
@@ -58,7 +58,7 @@ def singleAttriReg(attribute, label, degreeNum):
 
 
     # use polynomial regression
-    poly = PolynomialFeatures(degreeNum)
+    poly = PolynomialFeatures(5)
 
     # train and create a polynomial model
     xTrainPoly = poly.fit_transform(xTrain)
@@ -84,7 +84,7 @@ def singleAttriReg(attribute, label, degreeNum):
 
 # performs multi-linear, ridge, lasso, elastic net, ridge, bayesian ridge and decision tree regression...
 # and returns the regression strategy with the least root mean squared error
-def multiAttriReg(attriList, label):
+def multiAttriReg(attriList, outcome):
     #initialize the result
     res = Result()
 
@@ -102,7 +102,7 @@ def multiAttriReg(attriList, label):
 
     # reshape the specified values and get them
     x = data[attriList].values
-    y = data[label].values
+    y = data[outcome].values
 
     # split the data into training and testing sets with 80% training and 20% testing
     xTrain, xTest, yTrain, yTest = train_test_split(x,y, test_size = 0.2, random_state = 0)
@@ -158,7 +158,7 @@ def multiAttriReg(attriList, label):
 
     # if the elastic net RMSE is lesser than the previous model, overwrite the results
     if elasticNetRMSE < res.rmse:
-        res.strat = "lasso regression"
+        res.strat = "Elastic net regression"
         res.reg = lassoReg
         res.rmse = lassoRMSE
 
