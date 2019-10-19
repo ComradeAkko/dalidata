@@ -1,12 +1,11 @@
 # predictGUI.py by Comrade Akko
 
 import sys
-from PyQt5.QtWidgets import (QApplication, QGridLayout, QPushButton, QWidget, 
-        QVBoxLayout, QGroupBox, QHBoxLayout, QVBoxLayout, QLineEdit, QComboBox,
-        QDialog, QLabel, QTableWidget, QTabWidget, QTextEdit, QTableWidgetItem,
-        QCheckBox, QScrollArea)
-from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import (QApplication, QGridLayout, QWidget, 
+        QVBoxLayout, QGroupBox, QHBoxLayout, QVBoxLayout, QDialog, 
+        QLineEdit, QComboBox, QLabel, QScrollArea, QPushButton)
 from PyQt5.QtCore import pyqtSlot
+from sklearn.preprocessing import PolynomialFeatures 
 from regression import *
 
 # the app itself
@@ -15,18 +14,26 @@ class App(QDialog):
         super(App, self).__init__(parent)
 
         self.title = "DALI app data regressor"
+        self.attriNum = 0
+        self.currOutcome = " "
 
         # initialize the attribute list
-        attriList = ["heightInches", "happiness", 
+        self.attriList = ["heightInches", "happiness", 
         "stressed", "sleepPerNight", "socialDinnerPerWeek", 
         "alcoholDrinksPerWeek", "caffeineRating", "affiliated", 
         "numOfLanguages", "gymPerWeek", "hoursOnScreen"]
 
+        # initialize the variable list
+        self.variabList = []
+
+        # initialize the regression results
+        self.res = Result()
+
         # create group boxes
-        self.createOutcomeBox(attriList)
+        self.createOutcomeBox()
+        self.createScrollBox()
         self.createAttriLabelBox()
         self.createErrorBox()
-        self.createScrollBox(attriList)
         self.createCalcBox()
         self.createResultsLabel()
         self.createModelLabel()
@@ -63,12 +70,12 @@ class App(QDialog):
         self.show()
 
     # create a outcome selector box
-    def createOutcomeBox(self, attriList):
+    def createOutcomeBox(self):
         self.outcomeBox = QHBoxLayout()
 
         #create combo box and label widgets
         outcomeCombo = QComboBox()
-        outcomeCombo.addItems(attriList)
+        outcomeCombo.addItems(self.attriList)
 
         outcomeLabel = QLabel("&Outcome variable:")
         outcomeLabel.setBuddy(outcomeCombo)
@@ -88,11 +95,11 @@ class App(QDialog):
         # create both add and remove buttons
         addButton = QPushButton('Add', self)
         addButton.setToolTip('Adds more attribute boxes')
-        # addButton.clicked.connect(self.---)
+        addButton.clicked.connect(self.clickAdd)
 
         rmButton = QPushButton('Remove', self)
         rmButton.setToolTip('Removes more attribute boxes')
-        # rmButton.clicked.connect(self, ---)
+        rmButton.clicked.connect(self.clickRM)
 
         # add all the widgets to the box
         self.attriLabelBox.addWidget(attributeLab)
@@ -110,21 +117,19 @@ class App(QDialog):
         self.errorBox.addWidget(errorLabel)
 
     # creates a scroll box for attribute boxes
-    def createScrollBox(self, attriList):
+    def createScrollBox(self):
         self.scrollBox = QVBoxLayout()
         
-        # create box layout within the box
-        scrollInbox = QVBoxLayout()
-
-        # create the attribute selecting attribute
-        attriCombo = QComboBox()
-        attriCombo.addItems(attriList)
-
-        scrollInbox.addWidget(attriCombo)
+        # create central widget
+        central = QWidget()
 
         # create scroll area widget
         scrollArea = QScrollArea()
-        scrollArea.setLayout(scrollInbox)
+        scrollArea.setWidget(central)
+        scrollArea.setWidgetResizable(True)
+
+        # create box layout within the box
+        scrollInbox = QVBoxLayout(central)
 
         # set box layout
         self.scrollBox.addWidget(scrollArea)
@@ -136,7 +141,7 @@ class App(QDialog):
         # create calculate button
         modelButton = QPushButton('Model Regression', self)
         modelButton.setToolTip("Calculates regression models")
-        # calcButton.clicked.connect(self, ---)
+        modelButton.clicked.connect(self.clickModel)
 
         self.calcBox.addWidget(modelButton)
 
@@ -174,16 +179,21 @@ class App(QDialog):
     # creates a second scroll box for attribute boxes
     def createResuScroll(self):
         self.resuScroll = QVBoxLayout()
-        
-        # create box layout within the box
-        scrollInbox = QVBoxLayout()
+
+        # create central widget
+        central2 = QWidget()
 
         # create scroll area widget
         scrollSpace = QScrollArea()
-        scrollSpace.setLayout(scrollInbox)
+        scrollSpace.setWidget(central2)
+        scrollSpace.setWidgetResizable(True)
+        
+        # create box layout within the box
+        scrollInbox = QVBoxLayout(central2)
 
-        # set box layout
+        # add the scroll space to the box
         self.resuScroll.addWidget(scrollSpace)
+        
 
     # creates a box for predict button
     def createPredictBox(self):
@@ -192,7 +202,7 @@ class App(QDialog):
         # create predict button
         predButton = QPushButton('Predict', self)
         predButton.setToolTip("Predicts outcome based on model")
-        # predButton.clicked.connect(self, ---)
+        predButton.clicked.connect(self.clickPredict)
 
         self.predBox.addWidget(predButton)
 
@@ -203,6 +213,173 @@ class App(QDialog):
         outcomeLabel = QLabel('Outcome prediction:')
 
         self.outcomePred.addWidget(outcomeLabel)
+
+    
+    # what to do when the add button is pushed
+    @pyqtSlot()
+    def clickAdd(self):
+        # if there are too many attribute boxes, display error
+        if self.attriNum <= 9:
+            # add a new combo box
+            newCombo = QComboBox()
+            newCombo.addItems(self.attriList)
+            self.scrollBox.itemAt(0).widget().widget().layout().addWidget(newCombo)
+            self.attriNum += 1
+
+        else:
+            error1 = "Error: Too many attributes. Leave as be or decrease."
+            self.errorBox.itemAt(0).widget().setText(error1)
+
+    # what to do when the remove button is pushed
+    @pyqtSlot()
+    def clickRM(self):
+        # if there are boxes to remove, remove them
+        if self.attriNum > 0:
+            # clear the error box
+            error0 = " "
+            self.errorBox.itemAt(0).widget().setText(error0)
+
+            # remove the newest combo box
+            self.scrollBox.itemAt(0).widget().widget().layout().itemAt(self.attriNum-1).widget().deleteLater()
+            self.attriNum -= 1
+
+    # what to do when the modelling button is pushed
+    @pyqtSlot()
+    def clickModel(self):
+        # make sure there are attributes to model with
+        if self.attriNum > 0:
+            # make sure there are no duplicates with either the outcome variable or the attributes
+            self.variabList.clear()
+            self.variabList.append(self.outcomeBox.itemAt(2).widget().currentText())
+
+            noDupli = True
+            i = 0
+
+            # while there attributes to be appended and there are no duplicates
+            while i < self.attriNum and noDupli:
+                # append the selected attribute
+                comboText = self.scrollBox.itemAt(0).widget().widget().layout().itemAt(i).widget().currentText()
+                self.variabList.append(comboText)
+
+                i+=1
+
+                # if the length of the set of the current list is not equal to the length of the current list
+                if len(self.variabList) != len(set(self.variabList)):
+                    noDupli = False
+            
+            # if there was no duplicates, proceed with the current list of outcome variable and attributes
+            if noDupli:
+                # clear the error box
+                error0 = " "
+                self.errorBox.itemAt(0).widget().setText(error0)
+
+                # if there was only one attribute selected perform single attribute regression
+                if self.attriNum == 1:
+                    self.res = singleAttriReg(self.variabList[0], self.variabList[1])
+                
+                # otherwise perform multi attribute regression
+                else:
+                    attributes = self.variabList[1:]
+                    self.res = multiAttriReg(attributes, self.variabList[0])
+                
+                # post the results
+                model = "Model used: " + self.res.strat
+                rmse = "RMSE: " + str(self.res.rmse)
+
+                self.modelBox.itemAt(0).widget().setText(model)
+                self.rmseBox.itemAt(0).widget().setText(rmse)
+
+                # clear the previous resuScroll
+                for i in reversed(range(self.resuScroll.itemAt(0).widget().widget().layout().count())): 
+                    self.resuScroll.itemAt(0).widget().widget().layout().itemAt(i).widget().setParent(None)
+
+                # set the current outcome variable so it doesn't get affected by changing
+                # on the screen elsewhere
+                self.currOutcome = self.variabList[0]
+
+                # create appropriate attribute variable input editors
+                for i in range(self.attriNum):
+                    placeholder = QWidget()
+
+                    inputBox = QHBoxLayout()
+                    attributes = self.variabList[1:]
+
+                    label = QLabel(attributes[i] + ": ")
+                    lineEdit = QLineEdit()
+                    inputBox.addWidget(label)
+                    inputBox.addWidget(lineEdit)
+
+                    placeholder.setLayout(inputBox)
+
+                    self.resuScroll.itemAt(0).widget().widget().layout().addWidget(placeholder)
+
+            # if there were duplicates post error
+            else:
+                error3 = "Error: no duplicate variables allowed"
+                self.errorBox.itemAt(0).widget().setText(error3)
+
+        else:
+            error2 = "Error: cannot model without attribute variables"
+            self.errorBox.itemAt(0).widget().setText(error2)
+
+     # what to do when the prediction button is pushed
+    @pyqtSlot()
+    def clickPredict(self):
+        attriCount = self.resuScroll.itemAt(0).widget().widget().layout().count()
+        newAttriList = []
+
+        # make sure there are attributes to use to predict
+        if attriCount > 0:
+            # make sure all the inputted texts are integers
+            numbers = True
+            for j in range(attriCount):
+                try:
+                    num = int(self.resuScroll.itemAt(0).widget().widget().layout().itemAt(j).widget().layout().itemAt(1).widget().text())
+                    newAttriList.append(num)
+                except ValueError:
+                    numbers = False
+            
+            # if all inputs were integers
+            if numbers:
+                # clear error message
+                notErr = " "
+                self.errorTwo.itemAt(0).widget().setText(notErr)
+
+                # predict
+                newAttriList = [newAttriList]
+
+                # to account for special cases where polynomials screw up the code
+                if self.res.strat == "polynomial regression":
+                    poly = PolynomialFeatures(5)
+                    newAttriList = poly.fit_transform(newAttriList)
+                    prediction = self.res.reg.predict(newAttriList)
+
+                else:
+                    prediction = self.res.reg.predict(newAttriList)
+
+                # if there is only 1 attribute
+                if attriCount == 1:
+                    # set results of prediction
+                    predResult = "Outcome - " + self.currOutcome + ": " + str(round(prediction[0][0],4))
+                    self.outcomePred.itemAt(0).widget().setText(predResult)
+
+                # if there are more than 1 attribute
+                else:
+                    # set results of prediction
+                    predResult = "Outcome - " + self.currOutcome + ": " + str(round(prediction[0],4))
+                    self.outcomePred.itemAt(0).widget().setText(predResult)
+
+            # set error accordingly
+            else:
+                error5 = "Error: One or more inputs not integers"
+                self.errorTwo.itemAt(0).widget().setText(error5)
+        
+        # set error accordingly
+        else:
+            error4 = "Error: No attributes to use to predict."
+            self.errorTwo.itemAt(0).widget().setText(error4)
+
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
